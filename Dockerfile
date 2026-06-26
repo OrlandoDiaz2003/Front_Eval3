@@ -3,6 +3,13 @@ WORKDIR /app
 COPY pom.xml .
 RUN mvn dependency:go-offline
 COPY src ./src
+
+ARG BACKEND_USERS_URL
+ARG BACKEND_PRODUCTS_URL
+
+RUN echo "BACKEND_USERS_URL=${BACKEND_USERS_URL}" > .env && \
+    echo "BACKEND_PRODUCTS_URL=${BACKEND_PRODUCTS_URL}" >> .env
+
 RUN mvn compile exec:java
 
 FROM nginx:alpine
