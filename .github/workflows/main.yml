@@ -1,0 +1,45 @@
+name: Despliegue a ECS
+
+on:
+  push:
+    branches:
+      - deploy
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Iniciar sesion en docker hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Construir y subir imagen de docker
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/front_eval3:latest
+
+          build-args: |
+            BACKEND_USERS_URL=${{ secrets.BACKEND_USERS_URL }}
+            BACKEND_PRODUCTS_URL=${{ secrets.BACKEND_PRODUCTS_URL }}
+
+      - name: Configurar credenciales de aws
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Actualizar ECS
+        run: |
+          aws ecs update-service \
+            --cluster devops-eval3 \
+            --service front_java-service \
+            --force-new-deployment
